@@ -1,8 +1,10 @@
 import csv
 import datetime as dt
+import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from io import StringIO
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -78,6 +80,27 @@ def _normalize_header(value: str) -> str:
     return "".join(ch for ch in (value or "").lower() if ch.isalnum())
 
 
+logger = logging.getLogger(__name__)
+
+
+def _parse_cost_value(value: object) -> Optional[Decimal]:
+    if value in (None, ""):
+        return Decimal("0")
+    text = str(value).strip()
+    if not text:
+        return Decimal("0")
+    normalized = text.replace(",", "")
+    if normalized.startswith("(") and normalized.endswith(")"):
+        normalized = f"-{normalized[1:-1]}"
+    normalized = re.sub(r"[^\d.\-]", "", normalized)
+    if normalized in {"", "-", ".", "-.", ".-"}:
+        return None
+    try:
+        return Decimal(normalized)
+    except (InvalidOperation, ValueError):
+        return None
+
+
 def fetch_google_sheet_daily(
     sheet_url: str,
     account_id: str,
@@ -129,7 +152,10 @@ def fetch_google_sheet_daily(
             continue
         if parsed < start_date or parsed > end_date:
             continue
-        cost_decimal = Decimal(str(cost_raw).replace(",", "")) if cost_raw not in (None, "") else Decimal("0")
+        cost_decimal = _parse_cost_value(cost_raw)
+        if cost_decimal is None:
+            logger.warning("Skipping non-numeric cost value %r for date %s", cost_raw, parsed)
+            continue
         totals[parsed] += cost_decimal
 
     rows = [
