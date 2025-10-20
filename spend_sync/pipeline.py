@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple
 from .airtable_client import AirtableClient
 from .config import RuntimeConfig
 from .date_windows import daily_windows, dubai_now, monthly_windows, required_start_date
+from .category_kpi import update_category_monthly_counts
 from .kpi import update_daily_cac, update_monthly_cac
 from .sources import SpendRow, fetch_google_sheet_daily, fetch_meta_daily
 
@@ -104,6 +105,17 @@ def run_pipeline(config: RuntimeConfig) -> None:
                 spend_by_date,
                 today,
                 previous_day,
+            )
+
+        category_table = config.category_kpi_table_id or config.category_kpi_table_name or ""
+        orders_table = config.airtable_table_id or config.airtable_table_name or ""
+        if category_table and orders_table:
+            update_category_monthly_counts(
+                airtable,
+                orders_table,
+                category_table,
+                (previous_start, previous_end),
+                (current_start, current_end),
             )
 
     if config.csv_path:
