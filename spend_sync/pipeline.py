@@ -6,12 +6,9 @@ from .airtable_client import AirtableClient
 from .config import RuntimeConfig
 from .date_windows import daily_windows, dubai_now, monthly_windows, required_start_date
 from .category_kpi import update_category_monthly_counts, update_order_kpis
+from .constants import DEFAULT_CATEGORY_KPI_TABLE, DEFAULT_MONTHLY_KPI_TABLE, DEFAULT_ORDERS_TABLE
 from .kpi import update_daily_cac, update_monthly_cac
 from .sources import SpendRow, fetch_google_sheet_daily, fetch_meta_daily
-
-DEFAULT_MONTHLY_KPI_TABLE = "KPI"
-DEFAULT_ORDERS_TABLE = "Mamo Transactions"
-DEFAULT_CATEGORY_KPI_TABLE = "KPI Category Monthly"
 
 
 def fetch_spend(config: RuntimeConfig, start_date: dt.date, end_date: dt.date) -> List[SpendRow]:
