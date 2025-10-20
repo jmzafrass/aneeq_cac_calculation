@@ -24,8 +24,6 @@ class RuntimeConfig:
     daily_kpi_table_name: Optional[str]
     meta_access_token: str
     skip_airtable: bool
-    orders_table_id: Optional[str]
-    orders_table_name: Optional[str]
     category_kpi_table_id: Optional[str]
     category_kpi_table_name: Optional[str]
 
@@ -144,8 +142,6 @@ def build_config(args: argparse.Namespace, required_start: dt.date) -> RuntimeCo
     if not airtable_table_id and not airtable_table_name:
         raise ValueError("Provide AIRTABLE_TABLE_ID or AIRTABLE_TABLE_NAME.")
 
-    orders_table_id = os.getenv("AIRTABLE_ORDERS_TABLE_ID")
-    orders_table_name = os.getenv("AIRTABLE_ORDERS_TABLE_NAME")
     category_kpi_table_id = os.getenv("AIRTABLE_CATEGORY_KPI_TABLE_ID")
     category_kpi_table_name = os.getenv("AIRTABLE_CATEGORY_KPI_TABLE_NAME")
 
@@ -167,8 +163,6 @@ def build_config(args: argparse.Namespace, required_start: dt.date) -> RuntimeCo
         daily_kpi_table_name=os.getenv("AIRTABLE_KPI_DAILY_TABLE_NAME"),
         meta_access_token=meta_token,
         skip_airtable=args.skip_airtable,
-        orders_table_id=orders_table_id,
-        orders_table_name=orders_table_name,
         category_kpi_table_id=category_kpi_table_id,
         category_kpi_table_name=category_kpi_table_name,
     )

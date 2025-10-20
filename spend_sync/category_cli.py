@@ -2,13 +2,15 @@ import argparse
 import os
 
 from .airtable_client import AirtableClient
-from .category_kpi import update_category_monthly_counts, update_order_kpis
-from .constants import DEFAULT_CATEGORY_KPI_TABLE, DEFAULT_MONTHLY_KPI_TABLE, DEFAULT_ORDERS_TABLE
+from .category_kpi import update_category_monthly_counts
 from .date_windows import dubai_now, monthly_windows
+
+DEFAULT_ORDERS_TABLE = "Mamo Transactions"
+DEFAULT_CATEGORY_TABLE = "KPI Category Monthly"
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Update Airtable KPI tables from orders.")
+    parser = argparse.ArgumentParser(description="Update Airtable category KPI table.")
     parser.add_argument(
         "--airtable-api-key",
         default=os.getenv("AIRTABLE_API_KEY"),
@@ -22,27 +24,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--orders-table",
         default=os.getenv("AIRTABLE_ORDERS_TABLE_NAME", DEFAULT_ORDERS_TABLE),
-        help=f"Airtable orders table name or ID (default: env or '{DEFAULT_ORDERS_TABLE}').",
-    )
-    parser.add_argument(
-        "--kpi-table",
-        default=os.getenv("AIRTABLE_KPI_TABLE_NAME", DEFAULT_MONTHLY_KPI_TABLE),
-        help=f"KPI table name or ID (default: env or '{DEFAULT_MONTHLY_KPI_TABLE}').",
+        help=f"Airtable orders table identifier (default: env or '{DEFAULT_ORDERS_TABLE}').",
     )
     parser.add_argument(
         "--category-table",
-        default=os.getenv("AIRTABLE_CATEGORY_KPI_TABLE_NAME", DEFAULT_CATEGORY_KPI_TABLE),
-        help=f"Category KPI table name or ID (default: env or '{DEFAULT_CATEGORY_KPI_TABLE}').",
-    )
-    parser.add_argument(
-        "--skip-orders",
-        action="store_true",
-        help="Skip updating KPI (orders) table; only refresh category counts.",
-    )
-    parser.add_argument(
-        "--skip-category",
-        action="store_true",
-        help="Skip updating category counts; only refresh KPI (orders) table.",
+        default=os.getenv("AIRTABLE_CATEGORY_KPI_TABLE_NAME", DEFAULT_CATEGORY_TABLE),
+        help=f"Category KPI table identifier (default: env or '{DEFAULT_CATEGORY_TABLE}').",
     )
     return parser
 
@@ -58,28 +45,14 @@ def main(argv=None) -> None:
 
     airtable = AirtableClient(args.airtable_api_key, args.airtable_base_id)
 
-    now = dubai_now()
-    previous_start, previous_end, current_start, current_end = monthly_windows(now)
-    windows = (previous_start, previous_end), (current_start, current_end)
+    previous_start, previous_end, current_start, current_end = monthly_windows(dubai_now())
+    previous_window = (previous_start, previous_end)
+    current_window = (current_start, current_end)
 
-    if not args.skip_orders:
-        update_order_kpis(
-            airtable,
-            args.orders_table,
-            args.kpi_table,
-            windows[0],
-            windows[1],
-        )
-
-    if not args.skip_category:
-        update_category_monthly_counts(
-            airtable,
-            args.orders_table,
-            args.category_table,
-            windows[0],
-            windows[1],
-        )
-
-
-if __name__ == "__main__":
-    main()
+    update_category_monthly_counts(
+        airtable,
+        args.orders_table,
+        args.category_table,
+        previous_window,
+        current_window,
+    )
