@@ -5,9 +5,13 @@ from typing import Dict, List, Tuple
 from .airtable_client import AirtableClient
 from .config import RuntimeConfig
 from .date_windows import daily_windows, dubai_now, monthly_windows, required_start_date
-from .category_kpi import update_category_monthly_counts
+from .category_kpi import update_category_monthly_counts, update_order_kpis
 from .kpi import update_daily_cac, update_monthly_cac
 from .sources import SpendRow, fetch_google_sheet_daily, fetch_meta_daily
+
+DEFAULT_MONTHLY_KPI_TABLE = "KPI"
+DEFAULT_ORDERS_TABLE = "Mamo Transactions"
+DEFAULT_CATEGORY_KPI_TABLE = "KPI Category Monthly"
 
 
 def fetch_spend(config: RuntimeConfig, start_date: dt.date, end_date: dt.date) -> List[SpendRow]:
@@ -84,9 +88,34 @@ def run_pipeline(config: RuntimeConfig) -> None:
         table_identifier = config.airtable_table_id or config.airtable_table_name or ""
         airtable.upsert_by_id(table_identifier, payload)
 
+        category_table = (
+            config.category_kpi_table_id
+            or config.category_kpi_table_name
+            or DEFAULT_CATEGORY_KPI_TABLE
+        )
+        orders_table = (
+            config.orders_table_id
+            or config.orders_table_name
+            or config.airtable_table_id
+            or config.airtable_table_name
+            or DEFAULT_ORDERS_TABLE
+        )
+
         previous_start, previous_end, current_start, current_end = monthly_windows(now)
         if config.monthly_kpi_table_id or config.monthly_kpi_table_name:
-            table = config.monthly_kpi_table_id or config.monthly_kpi_table_name or ""
+            table = config.monthly_kpi_table_id or config.monthly_kpi_table_name or DEFAULT_MONTHLY_KPI_TABLE
+        else:
+            table = DEFAULT_MONTHLY_KPI_TABLE
+
+        if table:
+            if orders_table:
+                update_order_kpis(
+                    airtable,
+                    orders_table,
+                    table,
+                    (previous_start, previous_end),
+                    (current_start, current_end),
+                )
             update_monthly_cac(
                 airtable,
                 table,
@@ -107,8 +136,6 @@ def run_pipeline(config: RuntimeConfig) -> None:
                 previous_day,
             )
 
-        category_table = config.category_kpi_table_id or config.category_kpi_table_name or ""
-        orders_table = config.airtable_table_id or config.airtable_table_name or ""
         if category_table and orders_table:
             update_category_monthly_counts(
                 airtable,
