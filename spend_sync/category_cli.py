@@ -49,10 +49,33 @@ def main(argv=None) -> None:
     previous_window = (previous_start, previous_end)
     current_window = (current_start, current_end)
 
-    update_category_monthly_counts(
-        airtable,
-        args.orders_table,
-        args.category_table,
-        previous_window,
-        current_window,
+    previous_label = previous_start.strftime("%B")
+    current_label = current_start.strftime("%B")
+
+    print(
+        f"Updating category KPI table '{args.category_table}' "
+        f"from orders '{args.orders_table}' "
+        f"for {previous_label} and {current_label}...",
+        flush=True,
     )
+    try:
+        result = update_category_monthly_counts(
+            airtable,
+            args.orders_table,
+            args.category_table,
+            previous_window,
+            current_window,
+        )
+    except Exception as exc:  # catch any Airtable/network error and report
+        print(f"Update failed: {exc}", flush=True)
+        raise
+
+    print(
+        f"Done. Updated {result['updates']} records, created {result['creates']} records "
+        f"across {len(result['categories'])} categories.",
+        flush=True,
+    )
+
+
+if __name__ == "__main__":
+    main()

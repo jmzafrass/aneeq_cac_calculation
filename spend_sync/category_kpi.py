@@ -52,7 +52,7 @@ def update_category_monthly_counts(
     category_table: str,
     previous_window: Tuple[dt.date, dt.date],
     current_window: Tuple[dt.date, dt.date],
-) -> None:
+) -> Dict[str, object]:
     previous_start, previous_end = previous_window
     current_start, current_end = current_window
 
@@ -150,3 +150,9 @@ def update_category_monthly_counts(
         airtable.update_records(category_table, updates)
     if creates:
         airtable.create_records(category_table, creates)
+
+    return {
+        "updates": len(updates),
+        "creates": len(creates),
+        "categories": sorted_categories,
+    }
