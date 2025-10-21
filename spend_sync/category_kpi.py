@@ -46,6 +46,10 @@ def _extract_categories(value: object) -> List[str]:
     return list(dict.fromkeys(results))
 
 
+def _format_count(value: int) -> str:
+    return f"{value:,d}" if value else "0"
+
+
 def update_category_monthly_counts(
     airtable: AirtableClient,
     orders_table: str,
@@ -145,8 +149,8 @@ def update_category_monthly_counts(
     for category in sorted_categories:
         current_total, previous_total = totals(category)
         fields_payload: Dict[str, object] = {
-            month_previous_label: previous_total,
-            month_current_label: current_total,
+            month_previous_label: _format_count(previous_total),
+            month_current_label: _format_count(current_total),
         }
 
         record_id = existing_records.get(category)
