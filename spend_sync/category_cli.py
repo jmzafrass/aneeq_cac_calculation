@@ -21,14 +21,25 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.getenv("AIRTABLE_BASE_ID"),
         help="Airtable base ID (default: $AIRTABLE_BASE_ID).",
     )
+    orders_default = (
+        os.getenv("AIRTABLE_ORDERS_TABLE_NAME")
+        or os.getenv("AIRTABLE_ORDERS_TABLE_ID")
+        or DEFAULT_ORDERS_TABLE
+    )
+    category_default = (
+        os.getenv("AIRTABLE_CATEGORY_KPI_TABLE_NAME")
+        or os.getenv("AIRTABLE_CATEGORY_KPI_TABLE_ID")
+        or DEFAULT_CATEGORY_TABLE
+    )
+
     parser.add_argument(
         "--orders-table",
-        default=os.getenv("AIRTABLE_ORDERS_TABLE_NAME", DEFAULT_ORDERS_TABLE),
+        default=orders_default,
         help=f"Airtable orders table identifier (default: env or '{DEFAULT_ORDERS_TABLE}').",
     )
     parser.add_argument(
         "--category-table",
-        default=os.getenv("AIRTABLE_CATEGORY_KPI_TABLE_NAME", DEFAULT_CATEGORY_TABLE),
+        default=category_default,
         help=f"Category KPI table identifier (default: env or '{DEFAULT_CATEGORY_TABLE}').",
     )
     return parser
