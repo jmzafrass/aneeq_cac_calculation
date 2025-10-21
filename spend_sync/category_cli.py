@@ -54,6 +54,10 @@ def main(argv=None) -> None:
     if not args.airtable_base_id:
         raise SystemExit("AIRTABLE_BASE_ID is required (pass via flag or env).")
 
+    warn_env = os.environ.get("PYTHONWARNINGS")
+    if warn_env:
+        print(f"PYTHONWARNINGS={warn_env}", flush=True)
+
     airtable = AirtableClient(args.airtable_api_key, args.airtable_base_id)
 
     previous_start, previous_end, current_start, current_end = monthly_windows(dubai_now())

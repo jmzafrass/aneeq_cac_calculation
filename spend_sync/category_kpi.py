@@ -76,7 +76,17 @@ def update_category_monthly_counts(
 
     for record in order_records:
         fields = record.get("fields", {})
-        order_date_value = resolve_field(fields, "Order Date", ("date", "Date"))
+        order_date_value = resolve_field(
+            fields,
+            "Order Date",
+            (
+                "date",
+                "Date",
+                "created_date",
+                "Created Date",
+                "createdDate",
+            ),
+        )
         order_date = _parse_airtable_date(order_date_value)
         if not order_date:
             continue
