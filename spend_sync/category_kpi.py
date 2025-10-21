@@ -4,17 +4,75 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 from .airtable_client import AirtableClient
 
+DUBAI_OFFSET = dt.timedelta(hours=4)
+STATUS_FIELD = "status"
+STATUS_EXPECTED = "captured"
+DATE_FIELD = "created_date"
+CATEGORY_FIELD = "Category (from Product)"
+CATEGORY_FALLBACKS = (
+    "Category",
+    "Category (from Product Display Name)",
+)
 
-def _parse_airtable_date(value: object) -> Optional[dt.date]:
+
+def _normalize(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, dict):
+        name = value.get("name")
+        if isinstance(name, str):
+            return name.strip().lower()
+    if isinstance(value, list) and value:
+        return _normalize(value[0])
+    return str(value).strip().lower()
+
+
+def _parse_airtable_datetime(value: object) -> Optional[dt.datetime]:
     if isinstance(value, dt.datetime):
-        return value.date()
-    if isinstance(value, dt.date):
         return value
+    if isinstance(value, dt.date):
+        return dt.datetime.combine(value, dt.time())
     if isinstance(value, str):
         text = value.strip()
         if not text:
             return None
-        # Airtable sends ISO strings, sometimes with a trailing 'Z'.
+        candidate = text
+        if candidate.endswith("Z"):
+            candidate = candidate[:-1] + "+00:00"
+        try:
+            return dt.datetime.fromisoformat(candidate)
+        except ValueError:
+            pass
+        for fmt in (
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d",
+            "%Y/%m/%d %H:%M:%S",
+            "%Y/%m/%d %H:%M",
+            "%Y/%m/%d",
+            "%d/%m/%Y %I:%M%p",
+            "%d/%m/%Y %H:%M",
+            "%d/%m/%Y",
+            "%m/%d/%Y %I:%M%p",
+            "%m/%d/%Y %H:%M",
+            "%m/%d/%Y",
+        ):
+            try:
+                return dt.datetime.strptime(text, fmt)
+            except ValueError:
+                continue
+    return None
+
+
+def _parse_airtable_date(value: object) -> Optional[dt.date]:
+    if isinstance(value, dt.date) and not isinstance(value, dt.datetime):
+        return value
+    if isinstance(value, dt.datetime):
+        return value.date()
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
         if len(text) >= 10:
             try:
                 return dt.date.fromisoformat(text[:10])
@@ -26,6 +84,17 @@ def _parse_airtable_date(value: object) -> Optional[dt.date]:
             except ValueError:
                 continue
     return None
+
+
+def _to_dubai_date(value: object) -> Optional[dt.date]:
+    dt_value = _parse_airtable_datetime(value)
+    if dt_value:
+        if dt_value.tzinfo:
+            utc_dt = dt_value.astimezone(dt.timezone.utc).replace(tzinfo=None)
+        else:
+            utc_dt = dt_value
+        return (utc_dt + DUBAI_OFFSET).date()
+    return _parse_airtable_date(value)
 
 
 def _extract_categories(value: object) -> List[str]:
@@ -70,7 +139,6 @@ def update_category_monthly_counts(
     range_start = previous_start
     range_end = current_end
 
-    # Airtable field names might differ slightly between views, so try common fallbacks.
     def resolve_field(fields: Dict[str, object], preferred: str, fallbacks: Iterable[str]) -> object:
         candidates = [preferred, *fallbacks]
         for candidate in candidates:
@@ -80,24 +148,23 @@ def update_category_monthly_counts(
 
     for record in order_records:
         fields = record.get("fields", {})
+
+        status_value = resolve_field(fields, STATUS_FIELD, ("Status",))
+        if _normalize(status_value) != STATUS_EXPECTED:
+            continue
+
         order_date_value = resolve_field(
             fields,
-            "Order Date",
-            (
-                "date",
-                "Date",
-                "created_date",
-                "Created Date",
-                "createdDate",
-            ),
+            DATE_FIELD,
+            ("Order Date", "date", "Date", "Created Date", "createdDate"),
         )
-        order_date = _parse_airtable_date(order_date_value)
+        order_date = _to_dubai_date(order_date_value)
         if not order_date:
             continue
         if order_date < range_start or order_date > range_end:
             continue
 
-        category_value = resolve_field(fields, "Category (from Product)", ("Category",))
+        category_value = resolve_field(fields, CATEGORY_FIELD, CATEGORY_FALLBACKS)
         categories = _extract_categories(category_value)
         if not categories:
             continue
@@ -140,8 +207,6 @@ def update_category_monthly_counts(
         all_categories,
         key=lambda cat: (-totals(cat)[0], -totals(cat)[1], cat.lower()),
     )
-
-    rank_by_category = {cat: index + 1 for index, cat in enumerate(sorted_categories)}
 
     updates: List[Dict[str, object]] = []
     creates: List[Dict[str, object]] = []
