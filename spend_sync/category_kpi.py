@@ -230,8 +230,18 @@ def update_category_monthly_counts(
     if creates:
         airtable.create_records(category_table, creates)
 
+    totals_by_category = {
+        category: {
+            month_previous_label: totals(category)[1],
+            month_current_label: totals(category)[0],
+        }
+        for category in sorted_categories
+    }
+
     return {
         "updates": len(updates),
         "creates": len(creates),
         "categories": sorted_categories,
+        "totals": totals_by_category,
+        "month_labels": (month_previous_label, month_current_label),
     }

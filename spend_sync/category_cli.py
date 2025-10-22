@@ -90,6 +90,15 @@ def main(argv=None) -> None:
         f"across {len(result['categories'])} categories.",
         flush=True,
     )
+    totals = result.get("totals", {})
+    prev_label, curr_label = result.get("month_labels", ("Previous", "Current"))
+    if totals:
+        sample = list(totals.items())[:10]
+        print("Sample category totals:", flush=True)
+        for category, values in sample:
+            prev = values.get(prev_label, 0)
+            curr = values.get(curr_label, 0)
+            print(f"  - {category}: {prev_label}={prev}, {curr_label}={curr}", flush=True)
 
 
 if __name__ == "__main__":
