@@ -12,6 +12,9 @@ CATEGORY_FIELD = "Category (from Product)"
 CATEGORY_FALLBACKS = (
     "Category",
     "Category (from Product Display Name)",
+    "Product Category",
+    "Product category",
+    "product category",
 )
 
 

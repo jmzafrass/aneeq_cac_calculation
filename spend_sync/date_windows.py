@@ -43,10 +43,11 @@ def monthly_windows(now: dt.datetime) -> Tuple[dt.date, dt.date, dt.date, dt.dat
 
     previous_month_start = dt.date(prev_year, prev_month, 1)
     previous_month_end = dt.date(prev_year, prev_month, calendar.monthrange(prev_year, prev_month)[1])
+    previous_match_end = min(previous_month_end, previous_month_start + (current_range_end - current_month_start))
 
     return (
         previous_month_start,
-        previous_month_end,
+        previous_match_end,
         current_month_start,
         current_range_end,
     )
