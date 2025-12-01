@@ -26,6 +26,7 @@ class RuntimeConfig:
     skip_airtable: bool
     category_kpi_table_id: Optional[str]
     category_kpi_table_name: Optional[str]
+    orders_table: Optional[str]
 
 
 def parse_account_ids(raw: Optional[str]) -> List[str]:
@@ -43,6 +44,12 @@ def parse_account_ids(raw: Optional[str]) -> List[str]:
 
 
 def add_common_arguments(parser: argparse.ArgumentParser) -> None:
+    orders_default = (
+        os.getenv("AIRTABLE_ORDERS_TABLE_NAME")
+        or os.getenv("AIRTABLE_ORDERS_TABLE_ID")
+        or "Mamo Transactions"
+    )
+
     parser.add_argument(
         "--start-date",
         default=os.getenv("START_DATE"),
@@ -86,6 +93,12 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
         "--skip-airtable",
         action="store_true",
         help="Skip writing to Airtable.",
+    )
+    parser.add_argument(
+        "--orders-table",
+        default=orders_default,
+        help="Airtable orders table identifier for category KPI updates "
+        "(default: env or 'Mamo Transactions').",
     )
 
 
@@ -165,4 +178,5 @@ def build_config(args: argparse.Namespace, required_start: dt.date) -> RuntimeCo
         skip_airtable=args.skip_airtable,
         category_kpi_table_id=category_kpi_table_id,
         category_kpi_table_name=category_kpi_table_name,
+        orders_table=getattr(args, "orders_table", None),
     )

@@ -108,7 +108,7 @@ def run_pipeline(config: RuntimeConfig) -> None:
             )
 
         category_table = config.category_kpi_table_id or config.category_kpi_table_name or ""
-        orders_table = config.airtable_table_id or config.airtable_table_name or ""
+        orders_table = config.orders_table or ""
         if category_table and orders_table:
             update_category_monthly_counts(
                 airtable,
